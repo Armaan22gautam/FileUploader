@@ -1,1 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureShare - End-to-End Encrypted File Transfer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 90%;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .upload-section {
+            margin-bottom: 30px;
+        }
+
+        .drop-zone {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 60px 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: #764ba2;
+            background: rgba(118, 75, 162, 0.1);
+            transform: scale(1.02);
+        }
+
+        .drop-zone-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            color: #667eea;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .progress-container {
+            margin: 20px 0;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .result-container {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 15px;
+        }
+
+        .share-link {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            word-break: break-all;
+            font-family: monospace;
+            border: 2px solid #667eea;
+        }
+
+        .copy-btn {
+            background: #28a745;
+            font-size: 0.9em;
+            padding: 10px 20px;
+            margin: 10px 5px;
+        }
+
+        .download-section {
+            display: none;
+        }
+
+        .file-info {
+            background: rgba(40, 167, 69, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+
+        .security-info {
+            background: rgba(255, 193, 7, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #856404;
+        }
+
+        .error {
+            background: rgba(220, 53, 69, 0.1);
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            display: none;
+        }
+
+        .status {
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .status.success {
+            background: rgba(40, 167, 69, 0.1);
+            color: #155724;
+        }
+
+        .status.warning {
+            background: rgba(255, 193, 7, 0.1);
+            color: #856404;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            padding: 5px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 10px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            background: white;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .logo {
+                font-size: 2em;
+            }
+            
+            .drop-zone {
+                padding: 40px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🔐 SecureShare</div>
+        <div class="subtitle">End-to-End Encrypted File Transfer</div>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="showUpload()">Upload File</button>
+            <button class="tab" onclick="showDownload()">Download File</button>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="upload-section" id="uploadSection">
+            <div class="drop-zone" id="dropZone">
+                <div class="drop-zone-content">
+                    <div class="upload-icon">📁</div>
+                    <h3>Drag & Drop your file here</h3>
+                    <p>or click to browse</p>
+                    <button class="btn" onclick="document.getElementById('fileInput').click()">
+                        Choose File
+                    </button>
+                </div>
+            </div>
+            
+            <input type="file" id="fileInput" class="file-input">
+            
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div id="progressText">Encrypting...</div>
+            </div>
+            
+            <div class="result-container" id="resultContainer">
+                <h3>🎉 File Encrypted & Uploaded!</h3>
+                <div class="share-link" id="shareLink"></div>
+                <button class="btn copy-btn" onclick="copyToClipboard()">📋 Copy Link</button>
+                <button class="btn" onclick="resetUpload()">Upload Another</button>
+                
+                <div class="security-info">
+                    <strong>🔒 Security Notice:</strong> Your file is encrypted in your browser before upload. 
+                    The server never sees your original file. The decryption key is included in the link fragment 
+                    and is never sent to the server.
+                </div>
+            </div>
+        </div>
+
+        <!-- Download Section -->
+        <div class="download-section" id="downloadSection">
+            <h3>Enter Download Link</h3>
+            <input type="text" id="downloadLink" placeholder="Paste the secure link here..." style="width: 100%; padding: 15px; border: 2px solid #667eea; border-radius: 10px; margin: 15px 0;">
+            <button class="btn" onclick="processDownloadLink()">Access File</button>
+            
+            <div class="file-info" id="fileInfo" style="display: none;">
+                <h4>File Ready for Download</h4>
+                <p><strong>Filename:</strong> <span id="fileName"></span></p>
+                <p><strong>Size:</strong> <span id="fileSize"></span></p>
+                <button class="btn" onclick="downloadFile()">🔓 Decrypt & Download</button>
+            </div>
+        </div>
+
+        <div class="error" id="errorMessage"></div>
+        <div class="status" id="statusMessage"></div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentFile = null;
+        let uploadedFiles = new Map(); // In-memory storage for demo
+        let fileCounter = 0;
+
+        // Tab switching
+        function showUpload() {
+            document.getElementById('uploadSection').style.display = 'block';
+            document.getElementById('downloadSection').style.display = 'none';
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        function showDownload() {
+            document.getElementById('uploadSection').style.display = 'none';
+            document.getElementById('downloadSection').style.display = 'block';
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        // Drag and drop functionality
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropZone.addEventListener('click', () => fileInput.click());
+        
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+        
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        // File handling
+        function handleFile(file) {
+            if (file.size > 50 * 1024 * 1024) { // 50MB limit
+                showError('File size must be less than 50MB');
+                return;
+            }
+            
+            currentFile = file;
+            showStatus(`Selected: ${file.name} (${formatFileSize(file.size)})`, 'success');
+            encryptAndUpload(file);
+        }
+
+        // Encryption functions using Web Crypto API
+        async function encryptFile(file) {
+            try {
+                showProgress(10, 'Generating encryption key...');
+                
+                // Generate a random 256-bit key
+                const key = crypto.getRandomValues(new Uint8Array(32));
+                // Generate a random 96-bit IV for AES-GCM
+                const iv = crypto.getRandomValues(new Uint8Array(12));
+                
+                showProgress(30, 'Importing crypto key...');
+                
+                // Import the key for AES-GCM
+                const cryptoKey = await crypto.subtle.importKey(
+                    'raw',
+                    key,
+                    { name: 'AES-GCM' },
+                    false,
+                    ['encrypt']
+                );
+                
+                showProgress(50, 'Reading file...');
+                
+                // Read file as ArrayBuffer
+                const fileBuffer = await file.arrayBuffer();
+                
+                showProgress(70, 'Encrypting file...');
+                
+                // Encrypt the file
+                const encryptedContent = await crypto.subtle.encrypt(
+                    { name: 'AES-GCM', iv },
+                    cryptoKey,
+                    fileBuffer
+                );
+                
+                showProgress(90, 'Finalizing encryption...');
+                
+                return {
+                    encryptedContent: new Uint8Array(encryptedContent),
+                    key: btoa(String.fromCharCode(...key)),
+                    iv: btoa(String.fromCharCode(...iv)),
+                    originalName: file.name,
+                    originalSize: file.size,
+                    mimeType: file.type
+                };
+            } catch (error) {
+                throw new Error(`Encryption failed: ${error.message}`);
+            }
+        }
+
+        async function decryptFile(encryptedData, keyBase64, ivBase64) {
+            try {
+                // Decode base64 key and IV
+                const keyBytes = new Uint8Array(atob(keyBase64).split('').map(c => c.charCodeAt(0)));
+                const ivBytes = new Uint8Array(atob(ivBase64).split('').map(c => c.charCodeAt(0)));
+                
+                // Import the key
+                const cryptoKey = await crypto.subtle.importKey(
+                    'raw',
+                    keyBytes,
+                    { name: 'AES-GCM' },
+                    false,
+                    ['decrypt']
+                );
+                
+                // Decrypt the content
+                const decryptedContent = await crypto.subtle.decrypt(
+                    { name: 'AES-GCM', iv: ivBytes },
+                    cryptoKey,
+                    encryptedData
+                );
+                
+                return new Uint8Array(decryptedContent);
+            } catch (error) {
+                throw new Error(`Decryption failed: ${error.message}`);
+            }
+        }
+
+        // Upload simulation
+        async function encryptAndUpload(file) {
+            try {
+                showProgress(0, 'Starting encryption...');
+                
+                const encrypted = await encryptFile(file);
+                
+                showProgress(95, 'Uploading encrypted file...');
+                
+                // Simulate upload delay
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Generate unique file ID
+                const fileId = ++fileCounter;
+                
+                // Store encrypted file (in real app, this would be sent to server)
+                uploadedFiles.set(fileId, {
+                    encryptedContent: encrypted.encryptedContent,
+                    originalName: encrypted.originalName,
+                    originalSize: encrypted.originalSize,
+                    mimeType: encrypted.mimeType,
+                    uploadTime: new Date().toISOString()
+                });
+                
+                showProgress(100, 'Upload complete!');
+                
+                // Generate shareable link
+                const shareLink = `${window.location.origin}${window.location.pathname}#download=${fileId}&key=${encrypted.key}&iv=${encrypted.iv}&name=${encodeURIComponent(encrypted.originalName)}`;
+                
+                showResult(shareLink);
+                
+            } catch (error) {
+                showError(`Upload failed: ${error.message}`);
+            }
+        }
+
+        // Download functionality
+        function processDownloadLink() {
+            const link = document.getElementById('downloadLink').value.trim();
+            
+            if (!link) {
+                showError('Please enter a download link');
+                return;
+            }
+            
+            try {
+                const url = new URL(link);
+                const hash = url.hash.substring(1); // Remove #
+                const params = new URLSearchParams(hash);
+                
+                const fileId = params.get('download');
+                const key = params.get('key');
+                const iv = params.get('iv');
+                const fileName = decodeURIComponent(params.get('name') || 'encrypted_file');
+                
+                if (!fileId || !key || !iv) {
+                    throw new Error('Invalid download link format');
+                }
+                
+                // Check if file exists
+                const fileData = uploadedFiles.get(parseInt(fileId));
+                if (!fileData) {
+                    throw new Error('File not found or expired');
+                }
+                
+                // Store download parameters
+                window.downloadParams = { fileId: parseInt(fileId), key, iv, fileName };
+                
+                // Show file info
+                document.getElementById('fileName').textContent = fileName;
+                document.getElementById('fileSize').textContent = formatFileSize(fileData.originalSize);
+                document.getElementById('fileInfo').style.display = 'block';
+                
+                showStatus('File found and ready for download!', 'success');
+                
+            } catch (error) {
+                showError(`Invalid download link: ${error.message}`);
+            }
+        }
+
+        async function downloadFile() {
+            if (!window.downloadParams) {
+                showError('No file selected for download');
+                return;
+            }
+            
+            try {
+                const { fileId, key, iv, fileName } = window.downloadParams;
+                const fileData = uploadedFiles.get(fileId);
+                
+                if (!fileData) {
+                    throw new Error('File not found');
+                }
+                
+                showStatus('Decrypting file...', 'warning');
+                
+                // Decrypt the file
+                const decryptedContent = await decryptFile(fileData.encryptedContent, key, iv);
+                
+                // Create blob and download
+                const blob = new Blob([decryptedContent], { type: fileData.mimeType });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showStatus('File downloaded successfully!', 'success');
+                
+                // Clean up
+                document.getElementById('fileInfo').style.display = 'none';
+                document.getElementById('downloadLink').value = '';
+                delete window.downloadParams;
+                
+            } catch (error) {
+                showError(`Download failed: ${error.message}`);
+            }
+        }
+
+        // UI Helper functions
+        function showProgress(percent, text) {
+            const container = document.getElementById('progressContainer');
+            const fill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            
+            container.style.display = 'block';
+            fill.style.width = `${percent}%`;
+            progressText.textContent = text;
+            
+            if (percent >= 100) {
+                setTimeout(() => {
+                    container.style.display = 'none';
+                }, 1000);
+            }
+        }
+
+        function showResult(link) {
+            document.getElementById('shareLink').textContent = link;
+            document.getElementById('resultContainer').style.display = 'block';
+            document.getElementById('dropZone').style.display = 'none';
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        function showStatus(message, type = 'success') {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        function resetUpload() {
+            document.getElementById('resultContainer').style.display = 'none';
+            document.getElementById('dropZone').style.display = 'block';
+            document.getElementById('fileInput').value = '';
+            currentFile = null;
+        }
+
+        function copyToClipboard() {
+            const shareLink = document.getElementById('shareLink').textContent;
+            navigator.clipboard.writeText(shareLink).then(() => {
+                showStatus('Link copied to clipboard!', 'success');
+            }).catch(() => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = shareLink;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showStatus('Link copied to clipboard!', 'success');
+            });
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check if there's a download link in the URL
+            if (window.location.hash.includes('download=')) {
+                showDownload();
+                const hash = window.location.hash.substring(1);
+                const params = new URLSearchParams(hash);
+                const fileId = params.get('download');
+                const fileName = decodeURIComponent(params.get('name') || 'encrypted_file');
+                
+                if (fileId) {
+                    document.getElementById('downloadLink').value = window.location.href;
+                    processDownloadLink();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
